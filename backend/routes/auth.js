@@ -4,12 +4,13 @@ const router = express.Router();
 const { body, validationResult } = require("express-validator");
 const bcrypt = require('bcryptjs');
 var jwt = require('jsonwebtoken');
+var fetchuser = require('../middleware/fetchuser');
 
 const JWT_SECRET = 'iamthekingm@$$';
 
-// Create a User using: POST "/api/auth/createuser" . No login Required
+//ROUTE 1: Create a User using: POST "/api/auth/createuser" . No login Required
 router.post(
-  "/createuser",
+  '/createuser',
   [
     body("name", "Enter a valid Name").isLength({ min: 3 }),
     body("email", " Enter a Valid email").isEmail(),
@@ -50,11 +51,67 @@ router.post(
       const authtoken = jwt.sign(data, JWT_SECRET);
       
       res.json({ authtoken });
-      
+
     } catch (error) {
       console.error(error.message);
-      res.status(500).send("Some Error occured");
+      res.status(500).send("Internal Server Error");
     }
+  }
+);
+
+//ROUTE 2: Authenticate a User using: POST "/api/auth/login" . No login Required
+
+router.post('/login', [
+    body("email", " Enter a Valid email").isEmail(),
+    body("password", "Password can not be blank").exists(),
+  ],
+  async (req, res) => {
+    // If there are errors return bad request and error
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {email, password} = req.body;
+    try {
+      let user = await User.findOne({email}); // check wheather the User model consist the entered email
+      if(!user){
+        return res.status(400).json({error:"Please enter Correct Credentials"});
+      }
+
+      const passwordCompare = await bcrypt.compare(password, user.password); // comparing the password
+      if(!passwordCompare){
+        return res.status(400).json({error:"Please enter Correct Credentials"});
+      }
+
+      const data = {
+        user:{
+          id:user.id
+        }
+      }
+
+      const authtoken = jwt.sign(data, JWT_SECRET);
+      res.json({ authtoken });
+
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).send("Internal Server Error");
+    }
+
+  }
+);
+
+//ROUTE 3: Get loggedin User details: POST "/api/auth/getuser" . Login Required
+router.post('/getuser', fetchuser, async (req, res) => {
+    try {
+      userId = req.user.id;
+      const user = await User.findById(userId).select("-password")
+      res.send(user)
+  
+    } catch (error) {
+  console.error(error.message);
+  res.status(500).send("Internal Server Error");
+  }
   }
 );
 
