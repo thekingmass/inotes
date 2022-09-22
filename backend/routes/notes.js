@@ -84,8 +84,42 @@ router.put("/updatenote/:id", fetchuser,
 
     }
     catch{
-
+      console.error(error.message);
+      res.status(500).send("Internal Server Error");
     }
   }
 );
+
+//ROUTE 4: Delete an existing note of a logged in user using DELETE "/api/notes/deletenote" . login Required
+
+router.delete("/deletenote/:id", fetchuser,
+  async (req, res) => {
+    try {
+      // If there are errors return bad request and error
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+     
+      // Find the note to be deleted and delete it
+      let note = await Note.findById(req.params.id); // the param.id is the id which is comming from parameter
+
+      if(!note){return res.status(404).send("Not Found")} //  If no note is found with the id
+
+      // Allow deletion only if user and delete it
+      if(note.user.toString() !== req.user.id){ // if the user does not belongs to this particular note
+        return res.status(401).send("Not Allowed");
+      }
+
+      //updating the note 
+      note = await Note.findByIdAndDelete(req.params.id);
+      res.json({ "Success": "Note has been deleted", note:note });
+    }
+    catch{
+      console.error(error.message);
+      res.status(500).send("Internal Server Error");
+    }
+  }
+);
+
 module.exports = router;
