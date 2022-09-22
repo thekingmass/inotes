@@ -1,9 +1,13 @@
 const mongoose = require('mongoose');
-
-import mongoose from 'mongoose';
 const { Schema } = mongoose;
 
 const NotesSchema = new Schema({
+  user:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref : 'user'
+  },
+  // the user field is required to classify between the user and his notes
+  // here user will act as foreign key and it will help to extract the notes of the logged in user only
   title:{
     type: String,
     required: true,   
